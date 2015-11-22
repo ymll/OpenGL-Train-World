@@ -54,57 +54,57 @@ int TrainView::handle(int event)
 	static int last_push;
 
 	switch(event) {
-		case FL_PUSH:
-			last_push = Fl::event_button();
-			if (last_push == 1) {
-				doPick();
-				damage(1);
-				return 1;
-			};
-			break;
-		case FL_RELEASE:
+	case FL_PUSH:
+		last_push = Fl::event_button();
+		if (last_push == 1) {
+			doPick();
 			damage(1);
-			last_push=0;
 			return 1;
-		case FL_DRAG:
-			if ((last_push == 1) && (selectedCube >=0)) {
-				ControlPoint &cp = world->points[selectedCube];
+		};
+		break;
+	case FL_RELEASE:
+		damage(1);
+		last_push=0;
+		return 1;
+	case FL_DRAG:
+		if ((last_push == 1) && (selectedCube >=0)) {
+			ControlPoint &cp = world->points[selectedCube];
 
-				double r1x, r1y, r1z, r2x, r2y, r2z;
-				getMouseLine(r1x,r1y,r1z, r2x,r2y,r2z);
+			double r1x, r1y, r1z, r2x, r2y, r2z;
+			getMouseLine(r1x,r1y,r1z, r2x,r2y,r2z);
 
-				double rx, ry, rz;
-				mousePoleGo(r1x,r1y,r1z, r2x,r2y,r2z, 
-						  static_cast<double>(cp.pos.x), 
-						  static_cast<double>(cp.pos.y),
-						  static_cast<double>(cp.pos.z),
-						  rx, ry, rz,
-						  (Fl::event_state() & FL_CTRL) != 0);
-				cp.pos.x = (float) rx;
-				cp.pos.y = (float) ry;
-				cp.pos.z = (float) rz;
-				damage(1);
-			}
-			break;
-			// in order to get keyboard events, we need to accept focus
-		case FL_FOCUS:
+			double rx, ry, rz;
+			mousePoleGo(r1x,r1y,r1z, r2x,r2y,r2z, 
+				static_cast<double>(cp.pos.x), 
+				static_cast<double>(cp.pos.y),
+				static_cast<double>(cp.pos.z),
+				rx, ry, rz,
+				(Fl::event_state() & FL_CTRL) != 0);
+			cp.pos.x = (float) rx;
+			cp.pos.y = (float) ry;
+			cp.pos.z = (float) rz;
+			damage(1);
+		}
+		break;
+		// in order to get keyboard events, we need to accept focus
+	case FL_FOCUS:
+		return 1;
+	case FL_ENTER:	// every time the mouse enters this window, aggressively take focus
+		focus(this);
+		break;
+	case FL_KEYBOARD:
+		int k = Fl::event_key();
+		int ks = Fl::event_state();
+		if (k=='p') {
+			if (selectedCube >=0) 
+				printf("Selected(%d) (%g %g %g) (%g %g %g)\n",selectedCube,
+				world->points[selectedCube].pos.x,world->points[selectedCube].pos.y,world->points[selectedCube].pos.z,
+				world->points[selectedCube].orient.x,world->points[selectedCube].orient.y,world->points[selectedCube].orient.z);
+			else
+				printf("Nothing Selected\n");
 			return 1;
-		case FL_ENTER:	// every time the mouse enters this window, aggressively take focus
-				focus(this);
-				break;
-		case FL_KEYBOARD:
-		 		int k = Fl::event_key();
-				int ks = Fl::event_state();
-				if (k=='p') {
-					if (selectedCube >=0) 
-						printf("Selected(%d) (%g %g %g) (%g %g %g)\n",selectedCube,
-							world->points[selectedCube].pos.x,world->points[selectedCube].pos.y,world->points[selectedCube].pos.z,
-							world->points[selectedCube].orient.x,world->points[selectedCube].orient.y,world->points[selectedCube].orient.z);
-					else
-						printf("Nothing Selected\n");
-					return 1;
-				};
-				break;
+		};
+		break;
 	}
 
 	return Fl_Gl_Window::handle(event);
@@ -125,7 +125,7 @@ void TrainView::draw()
 	glEnable(GL_DEPTH);
 
 	// Blayne prefers GL_DIFFUSE
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 
 	// prepare for projection
 	glMatrixMode(GL_PROJECTION);
@@ -187,7 +187,7 @@ void TrainView::draw()
 		drawStuff(true);
 		unsetupShadows();
 	}
-	
+
 }
 
 // note: this sets up both the Projection and the ModelView matrices
