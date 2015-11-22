@@ -23,7 +23,13 @@
 #include "GL/glu.h"
 
 
+struct camera_info {
+	GLdouble eye[3];
+	GLdouble center[3];
+	GLdouble up[3];
+};
 
+struct camera_info camera_setting;
 
 TrainView::TrainView(int x, int y, int w, int h, const char* l) : Fl_Gl_Window(x,y,w,h,l)
 {
@@ -216,8 +222,17 @@ void TrainView::setProjection()
 		glRotatef(-90,1,0,0);
 	} else {
 		// TODO: put code for train view projection here!
-		
 
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluPerspective(80.0, aspect, 1.0, 2000.0);
+
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+
+		gluLookAt(camera_setting.eye[0], camera_setting.eye[1], camera_setting.eye[2], 
+			camera_setting.center[0], camera_setting.center[1], camera_setting.center[2], 
+			camera_setting.up[0], camera_setting.up[1], camera_setting.up[2]);
 	}
 }
 
