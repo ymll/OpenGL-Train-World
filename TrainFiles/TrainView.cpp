@@ -236,17 +236,17 @@ void TrainView::setProjection()
 	}
 }
 
-Pnt3f getTrackLocationFromParameter(World *world, float para)
+Pnt3f getLocationFromParameter(World *world, float para)
 {
 	int start_point_index = (int)para + world->points.size();
 	float t = para - (int)para;
 	float tension = 0.5f;
-	Pnt3f track_location;
+	Pnt3f location;
 	Pnt3f control_points[4];
 
-	track_location.x = 0.0f;
-	track_location.y = 0.0f;
-	track_location.z = 0.0f;
+	location.x = 0.0f;
+	location.y = 0.0f;
+	location.z = 0.0f;
 	control_points[0] = world->points[(start_point_index - 1) % world->points.size()].pos;
 	control_points[1] = world->points[(start_point_index + 0) % world->points.size()].pos;
 	control_points[2] = world->points[(start_point_index + 1) % world->points.size()].pos;
@@ -254,12 +254,12 @@ Pnt3f getTrackLocationFromParameter(World *world, float para)
 
 	const float t2 = t*t;
 	const float t3 = t*t*t;
-	track_location = track_location + tension * (-t3 + 2*t2 - t) * control_points[0];
-	track_location = track_location + ((2*t3 - 3*t2 + 1) + tension * (t2 - t3)) * control_points[1];
-	track_location = track_location + ((-2*t3 + 3*t2) + tension * (t3 - 2*t2 + t)) * control_points[2];
-	track_location = track_location + tension * (t3 - t2) * control_points[3];
+	location = location + tension * (-t3 + 2*t2 - t) * control_points[0];
+	location = location + ((2*t3 - 3*t2 + 1) + tension * (t2 - t3)) * control_points[1];
+	location = location + ((-2*t3 + 3*t2) + tension * (t3 - 2*t2 + t)) * control_points[2];
+	location = location + tension * (t3 - t2) * control_points[3];
 
-	return track_location;
+	return location;
 }
 
 float distance(Pnt3f a, Pnt3f b)
@@ -271,11 +271,11 @@ void getNextPoint(World *world, float displacement, float &para, Pnt3f &next_loc
 {
 	const float du = 0.01f;
 	float current_displacement = 0.0f;
-	Pnt3f current_loc = getTrackLocationFromParameter(world, para);
+	Pnt3f current_loc = getLocationFromParameter(world, para);
 	
 	while (current_displacement < displacement) {
 		para += du;
-		next_loc = getTrackLocationFromParameter(world, para);
+		next_loc = getLocationFromParameter(world, para);
 		current_displacement += distance(current_loc, next_loc);
 		current_loc = next_loc;
 	}
@@ -290,7 +290,7 @@ void drawCardinalSpline(World *world, float tension)
 	glPushMatrix();
 	glBegin(GL_LINE_STRIP);
 	{
-		track_location = getTrackLocationFromParameter(world, current_para);
+		track_location = getLocationFromParameter(world, current_para);
 		glVertex3f(track_location.x, track_location.y, track_location.z);
 		getNextPoint(world, 2.0f, current_para, track_location);
 
@@ -299,7 +299,7 @@ void drawCardinalSpline(World *world, float tension)
 			getNextPoint(world, 2.0f, current_para, track_location);
 		}
 
-		track_location = getTrackLocationFromParameter(world, max_para);
+		track_location = getLocationFromParameter(world, max_para);
 		glVertex3f(track_location.x, track_location.y, track_location.z);
 	}
 	glEnd();
