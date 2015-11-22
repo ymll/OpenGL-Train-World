@@ -44,6 +44,8 @@ public:		// we don't make anything private - for no good reason
 	// TODO: you might want to do this differently
 	float trainU;
 
+	float tension;
+
 	// read and write to files
 	void readPoints(const char* filename);
 	void writePoints(const char* filename);

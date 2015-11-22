@@ -236,15 +236,71 @@ void TrainView::setProjection()
 	}
 }
 
-void drawLinearTrack(World *world) 
+Pnt3f getTrackLocationFromParameter(World *world, float para)
 {
+	int start_point_index = (int)para + world->points.size();
+	float t = para - (int)para;
+	float tension = 0.5f;
+	Pnt3f track_location;
+	Pnt3f control_points[4];
+
+	track_location.x = 0.0f;
+	track_location.y = 0.0f;
+	track_location.z = 0.0f;
+	control_points[0] = world->points[(start_point_index - 1) % world->points.size()].pos;
+	control_points[1] = world->points[(start_point_index + 0) % world->points.size()].pos;
+	control_points[2] = world->points[(start_point_index + 1) % world->points.size()].pos;
+	control_points[3] = world->points[(start_point_index + 2) % world->points.size()].pos;
+
+	const float t2 = t*t;
+	const float t3 = t*t*t;
+	track_location = track_location + tension * (-t3 + 2*t2 - t) * control_points[0];
+	track_location = track_location + ((2*t3 - 3*t2 + 1) + tension * (t2 - t3)) * control_points[1];
+	track_location = track_location + ((-2*t3 + 3*t2) + tension * (t3 - 2*t2 + t)) * control_points[2];
+	track_location = track_location + tension * (t3 - t2) * control_points[3];
+
+	return track_location;
+}
+
+float distance(Pnt3f a, Pnt3f b)
+{
+	return sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z));
+}
+
+void getNextPoint(World *world, float displacement, float &para, Pnt3f &next_loc)
+{
+	const float du = 0.01f;
+	float current_displacement = 0.0f;
+	Pnt3f current_loc = getTrackLocationFromParameter(world, para);
+	
+	while (current_displacement < displacement) {
+		para += du;
+		next_loc = getTrackLocationFromParameter(world, para);
+		current_displacement += distance(current_loc, next_loc);
+		current_loc = next_loc;
+	}
+}
+
+void drawCardinalSpline(World *world, float tension) 
+{
+	float current_para = 0.0f;
+	float max_para = (float) world->points.size();
+	Pnt3f track_location;
+
 	glPushMatrix();
 	glBegin(GL_LINE_STRIP);
 	{
-		for(int i = 0; i < world->points.size(); i++) {
-			glVertex3f(world->points[i].pos.x, world->points[i].pos.y, world->points[i].pos.z);
+		track_location = getTrackLocationFromParameter(world, current_para);
+		glVertex3f(track_location.x, track_location.y, track_location.z);
+		getNextPoint(world, 2.0f, current_para, track_location);
+
+		while(current_para < max_para) {
+			glVertex3f(track_location.x, track_location.y, track_location.z);
+			getNextPoint(world, 2.0f, current_para, track_location);
 		}
-		glVertex3f(world->points[0].pos.x, world->points[0].pos.y, world->points[0].pos.z);
+
+		track_location = getTrackLocationFromParameter(world, max_para);
+		glVertex3f(track_location.x, track_location.y, track_location.z);
 	}
 	glEnd();
 	glPopMatrix();
@@ -252,8 +308,8 @@ void drawLinearTrack(World *world)
 
 // TODO: function that draws the track
 void TrainView::drawTrack(bool doingShadows)
-{
-	drawLinearTrack(world);
+{	
+	drawCardinalSpline(world, world->tension);
 }
 
 //TODO: function that draw the train
