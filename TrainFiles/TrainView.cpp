@@ -262,6 +262,30 @@ Pnt3f getLocationFromParameter(World *world, float para)
 	return location;
 }
 
+void getDirectionFromParameter(World *world, float para, Pnt3f &direction)
+{
+	int start_point_index = (int)para + world->points.size();
+	float t = para - (int)para;
+	float tension = 0.5f;
+	Pnt3f control_points[4];
+
+	direction.x = 0.0f;
+	direction.y = 0.0f;
+	direction.z = 0.0f;
+	control_points[0] = world->points[(start_point_index - 1) % world->points.size()].pos;
+	control_points[1] = world->points[(start_point_index + 0) % world->points.size()].pos;
+	control_points[2] = world->points[(start_point_index + 1) % world->points.size()].pos;
+	control_points[3] = world->points[(start_point_index + 2) % world->points.size()].pos;
+
+	const float t2 = t*t;
+	const float t3 = t*t*t;
+	direction = direction + tension * (-3*t2 + 4*t - 1) * control_points[0];
+	direction = direction + ((6*t2 - 6*t) + tension * (2*t - 3*t2)) * control_points[1];
+	direction = direction + ((-6*t2 + 6*t) + tension * (3*t2 - 4*t + 1)) * control_points[2];
+	direction = direction + tension * (3*t2 - 2*t) * control_points[3];
+	direction.normalize();
+}
+
 float distance(Pnt3f a, Pnt3f b)
 {
 	return sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z));
