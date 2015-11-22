@@ -24,9 +24,9 @@
 
 
 struct camera_info {
-	GLdouble eye[3];
-	GLdouble center[3];
-	GLdouble up[3];
+	Pnt3f eye;
+	Pnt3f center;
+	Pnt3f up;
 };
 
 struct camera_info camera_setting;
@@ -230,16 +230,30 @@ void TrainView::setProjection()
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 
-		gluLookAt(camera_setting.eye[0], camera_setting.eye[1], camera_setting.eye[2], 
-			camera_setting.center[0], camera_setting.center[1], camera_setting.center[2], 
-			camera_setting.up[0], camera_setting.up[1], camera_setting.up[2]);
+		gluLookAt(camera_setting.eye.x, camera_setting.eye.y, camera_setting.eye.z, 
+			camera_setting.center.x, camera_setting.center.y, camera_setting.center.z, 
+			camera_setting.up.x, camera_setting.up.y, camera_setting.up.z);
 	}
+}
+
+void drawLinearTrack(World *world) 
+{
+	glPushMatrix();
+	glBegin(GL_LINE_STRIP);
+	{
+		for(int i = 0; i < world->points.size(); i++) {
+			glVertex3f(world->points[i].pos.x, world->points[i].pos.y, world->points[i].pos.z);
+		}
+		glVertex3f(world->points[0].pos.x, world->points[0].pos.y, world->points[0].pos.z);
+	}
+	glEnd();
+	glPopMatrix();
 }
 
 // TODO: function that draws the track
 void TrainView::drawTrack(bool doingShadows)
 {
-
+	drawLinearTrack(world);
 }
 
 //TODO: function that draw the train
