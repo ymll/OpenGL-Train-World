@@ -29,6 +29,8 @@
 
 
 /////////////////////////////////////////////////////
+void tensionCallback(Fl_Widget*, TrainWindow* tw);
+
 TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,600,"Train and Roller Coaster")
 {
 	// make all of the widgets
@@ -46,7 +48,7 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
 		widgets->begin();
 
 		runButton = new Fl_Button(605,pty,60,20,"Run");
-		togglify(runButton);
+		togglify(runButton, 1);
 
 		Fl_Button* fb = new Fl_Button(700,pty,25,20,"@>>");
 		fb->callback((Fl_Callback*)forwCB,this);
@@ -58,8 +60,9 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
   
 		pty+=25;
 		speed = new Fl_Value_Slider(655,pty,140,20,"speed");
-		speed->range(0,10);
-		speed->value(2);
+		speed->range(0,2);
+		speed->step(0.01);
+		speed->value(0.1);
 		speed->align(FL_ALIGN_LEFT);
 		speed->type(FL_HORIZONTAL);
 
@@ -127,7 +130,15 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
 		pty+=30;
 
 		// TODO: add widgets for all of your fancier features here
+		Fl_Value_Slider* tension = new Fl_Value_Slider(655,pty,140,20,"Tension");
+		tension->range(0, 1);
+		tension->value(0);
+		tension->step(0.05);
+		tension->align(FL_ALIGN_LEFT);
+		tension->type(FL_HORIZONTAL);
+		tension->callback((Fl_Callback*)tensionCallback,this);
 
+		pty+=20;
 
 		// we need to make a little phantom widget to have things resize correctly
 		Fl_Box* resizebox = new Fl_Box(600,595,200,5);
@@ -139,6 +150,8 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
 
 	// set up callback on idle
 	Fl::add_idle((void (*)(void*))runButtonCB,this);
+
+	world.tension = 0.0f;
 }
 
 // handy utility to make a button into a toggle
@@ -157,6 +170,56 @@ void TrainWindow::damageMe()
 	trainView->damage(1);
 }
 
+void tensionCallback(Fl_Widget* tension_widget, TrainWindow* tw)
+{
+	tw->world.tension = (float)((Fl_Value_Slider*)tension_widget)->value();
+	tw->damageMe();
+}
+
+Pnt3f getLocationFromParameter(World *world, float para, float tension)
+{
+	int start_point_index = (int)para + world->points.size();
+	float t = para - (int)para;
+	Pnt3f location;
+	Pnt3f control_points[4];
+
+	location.x = 0.0f;
+	location.y = 0.0f;
+	location.z = 0.0f;
+	control_points[0] = world->points[(start_point_index - 1) % world->points.size()].pos;
+	control_points[1] = world->points[(start_point_index + 0) % world->points.size()].pos;
+	control_points[2] = world->points[(start_point_index + 1) % world->points.size()].pos;
+	control_points[3] = world->points[(start_point_index + 2) % world->points.size()].pos;
+
+	const float t2 = t*t;
+	const float t3 = t*t*t;
+	location = location + tension * (-t3 + 2*t2 - t) * control_points[0];
+	location = location + ((2*t3 - 3*t2 + 1) + tension * (t2 - t3)) * control_points[1];
+	location = location + ((-2*t3 + 3*t2) + tension * (t3 - 2*t2 + t)) * control_points[2];
+	location = location + tension * (t3 - t2) * control_points[3];
+
+	return location;
+}
+
+float distance(Pnt3f a, Pnt3f b)
+{
+	return sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z));
+}
+
+void getNextPoint(World *world, float displacement, float tension, float &para, Pnt3f &next_loc)
+{
+	const float du = 0.01f;
+	float current_displacement = 0.0f;
+	Pnt3f current_loc = getLocationFromParameter(world, para, tension);
+	
+	while (current_displacement < displacement) {
+		para += du;
+		next_loc = getLocationFromParameter(world, para, tension);
+		current_displacement += distance(current_loc, next_loc);
+		current_loc = next_loc;
+	}
+}
+
 /////////////////////////////////////////////////////
 // this will get called (approximately) 30 times per second
 // if the run button is pressed
@@ -169,6 +232,8 @@ void TrainWindow::advanceTrain(float dir)
 
 	if (arcLength->value()) {
 		//considering the arc length requirement
+		Pnt3f next_loc;
+		getNextPoint(&world, (float)speed->value() * dir * 10, world.tension, world.trainU, next_loc);
 	} else {
 		//the basic functionality
 		world.trainU +=  dir * ((float)speed->value() * .1f);

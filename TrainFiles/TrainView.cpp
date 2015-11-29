@@ -31,6 +31,9 @@ struct camera_info {
 
 struct camera_info camera_setting;
 
+extern Pnt3f getLocationFromParameter(World *world, float para, float tension);
+extern void getNextPoint(World *world, float displacement, float tension, float &para, Pnt3f &next_loc);
+
 TrainView::TrainView(int x, int y, int w, int h, const char* l) : Fl_Gl_Window(x,y,w,h,l)
 {
 	mode( FL_RGB|FL_ALPHA|FL_DOUBLE | FL_STENCIL );
@@ -236,37 +239,11 @@ void TrainView::setProjection()
 	}
 }
 
-Pnt3f getLocationFromParameter(World *world, float para)
-{
-	int start_point_index = (int)para + world->points.size();
-	float t = para - (int)para;
-	float tension = 0.5f;
-	Pnt3f location;
-	Pnt3f control_points[4];
-
-	location.x = 0.0f;
-	location.y = 0.0f;
-	location.z = 0.0f;
-	control_points[0] = world->points[(start_point_index - 1) % world->points.size()].pos;
-	control_points[1] = world->points[(start_point_index + 0) % world->points.size()].pos;
-	control_points[2] = world->points[(start_point_index + 1) % world->points.size()].pos;
-	control_points[3] = world->points[(start_point_index + 2) % world->points.size()].pos;
-
-	const float t2 = t*t;
-	const float t3 = t*t*t;
-	location = location + tension * (-t3 + 2*t2 - t) * control_points[0];
-	location = location + ((2*t3 - 3*t2 + 1) + tension * (t2 - t3)) * control_points[1];
-	location = location + ((-2*t3 + 3*t2) + tension * (t3 - 2*t2 + t)) * control_points[2];
-	location = location + tension * (t3 - t2) * control_points[3];
-
-	return location;
-}
-
 void getDirectionFromParameter(World *world, float para, Pnt3f &direction)
 {
+	float tension = world->tension;
 	int start_point_index = (int)para + world->points.size();
 	float t = para - (int)para;
-	float tension = 0.5f;
 	Pnt3f control_points[4];
 
 	direction.x = 0.0f;
@@ -283,26 +260,96 @@ void getDirectionFromParameter(World *world, float para, Pnt3f &direction)
 	direction = direction + ((6*t2 - 6*t) + tension * (2*t - 3*t2)) * control_points[1];
 	direction = direction + ((-6*t2 + 6*t) + tension * (3*t2 - 4*t + 1)) * control_points[2];
 	direction = direction + tension * (3*t2 - 2*t) * control_points[3];
-	direction.normalize();
-}
-
-float distance(Pnt3f a, Pnt3f b)
-{
-	return sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z));
-}
-
-void getNextPoint(World *world, float displacement, float &para, Pnt3f &next_loc)
-{
-	const float du = 0.01f;
-	float current_displacement = 0.0f;
-	Pnt3f current_loc = getLocationFromParameter(world, para);
 	
-	while (current_displacement < displacement) {
-		para += du;
-		next_loc = getLocationFromParameter(world, para);
-		current_displacement += distance(current_loc, next_loc);
-		current_loc = next_loc;
+	float magnitudeSquare = direction.x * direction.x + direction.y * direction.y + direction.z * direction.z;
+	if (magnitudeSquare > 1e-6) {
+		direction.normalize();
 	}
+}
+
+void getOritentationFromParameter(World *world, float para, Pnt3f &oritentation)
+{
+	int start_point_index = (int)para + world->points.size();
+	float t = para - (int)para;
+	Pnt3f control_points[2];
+
+	oritentation.x = 0.0f;
+	oritentation.y = 0.0f;
+	oritentation.z = 0.0f;
+	control_points[0] = world->points[(start_point_index + 0) % world->points.size()].orient;
+	control_points[1] = world->points[(start_point_index + 1) % world->points.size()].orient;
+
+	oritentation = (1 - t) * control_points[0] + t * control_points[1];
+
+	float magnitudeSquare = oritentation.x * oritentation.x + oritentation.y * oritentation.y + oritentation.z * oritentation.z;
+	if (magnitudeSquare > 1e-6) {
+		oritentation.normalize();
+	}
+}
+
+void getMatrix(World *world, Pnt3f position, Pnt3f direction, Pnt3f oritentation, float right)
+{
+	Pnt3f biNormal = direction * oritentation;
+	biNormal.normalize();
+	Pnt3f normal = biNormal * direction;
+	Pnt3f obj_position = position + biNormal * right;
+
+	world->train_matrix[0][0] = biNormal.x;
+	world->train_matrix[0][1] = biNormal.y;
+	world->train_matrix[0][2] = biNormal.z;
+	world->train_matrix[0][3] = 0.0f;
+
+	world->train_matrix[1][0] = normal.x;
+	world->train_matrix[1][1] = normal.y;
+	world->train_matrix[1][2] = normal.z;
+	world->train_matrix[1][3] = 0.0f;
+
+	world->train_matrix[2][0] = direction.x;
+	world->train_matrix[2][1] = direction.y;
+	world->train_matrix[2][2] = direction.z;
+	world->train_matrix[2][3] = 0.0f;
+
+	world->train_matrix[3][0] = obj_position.x;
+	world->train_matrix[3][1] = obj_position.y;
+	world->train_matrix[3][2] = obj_position.z;
+	world->train_matrix[3][3] = 1.0f;
+}
+
+void drawCube(float w, float h, float l){
+	//front
+	glPushMatrix();
+	glTranslated(0.0f, 0.0f, l/2);
+	glRectf(-w/2, -h/2, w/2, h/2);
+	glPopMatrix();
+	//back
+	glPushMatrix();
+	glTranslated(0.0f, 0.0f, -l/2);
+	glRectf(-w/2, -h/2, w/2, h/2);
+	glPopMatrix();
+	//left
+	glPushMatrix();
+	glRotatef(90, 0.0f, 1.0f, 0.0f );
+	glTranslated(0.0f , 0.0f, -w/2);
+	glRectf(-l/2, -h/2, l/2, h/2);
+	glPopMatrix();
+	//right
+	glPushMatrix();
+	glRotatef(90, 0.0f, 1.0f, 0.0f );
+	glTranslated(0.0f , 0.0f, w/2);
+	glRectf(-l/2, -h/2, l/2, h/2);
+	glPopMatrix();
+	//top
+	glPushMatrix();
+	glRotatef(90, 1.0f, 0.0f, 0.0f );
+	glTranslated(0.0f , 0.0f, -h/2);
+	glRectf(-w/2, -l/2, w/2, l/2);
+	glPopMatrix();
+	//bottom
+	glPushMatrix();
+	glRotatef(90, 1.0f, 0.0f, 0.0f );
+	glTranslated(0.0f , 0.0f, h/2);
+	glRectf(-w/2, -l/2, w/2, l/2);
+	glPopMatrix();
 }
 
 void drawCardinalSpline(World *world, float tension) 
@@ -314,16 +361,16 @@ void drawCardinalSpline(World *world, float tension)
 	glPushMatrix();
 	glBegin(GL_LINE_STRIP);
 	{
-		track_location = getLocationFromParameter(world, current_para);
+		track_location = getLocationFromParameter(world, current_para, tension);
 		glVertex3f(track_location.x, track_location.y, track_location.z);
-		getNextPoint(world, 2.0f, current_para, track_location);
+		getNextPoint(world, 2.0f, tension, current_para, track_location);
 
 		while(current_para < max_para) {
 			glVertex3f(track_location.x, track_location.y, track_location.z);
-			getNextPoint(world, 2.0f, current_para, track_location);
+			getNextPoint(world, 2.0f, tension, current_para, track_location);
 		}
 
-		track_location = getLocationFromParameter(world, max_para);
+		track_location = getLocationFromParameter(world, max_para, tension);
 		glVertex3f(track_location.x, track_location.y, track_location.z);
 	}
 	glEnd();
@@ -339,7 +386,32 @@ void TrainView::drawTrack(bool doingShadows)
 //TODO: function that draw the train
 void TrainView::drawTrain(bool doingShadows)
 {
+	Pnt3f direction;
+	Pnt3f oritentation;
+	Pnt3f train_loc = getLocationFromParameter(world, world->trainU, world->tension);
 
+	if (!doingShadows) {
+		glColor3f(0, 0, 1);
+	}
+	
+	getDirectionFromParameter(world, world->trainU, direction);
+	getOritentationFromParameter(world, world->trainU, oritentation);
+	getMatrix(world, train_loc, direction, oritentation, 0);
+
+	glPushMatrix();
+	glMultMatrixf((float*)world->train_matrix);
+	
+	glPushMatrix();
+	glTranslated(0.0f, 2.5f, 0.0f);
+	drawCube(3.0f, 5.0f, 15.0f);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(0.0f , 5.0f, -5.5f);
+	drawCube(5.0f, 5.0f, 5.0f);
+	glPopMatrix();
+
+	glPopMatrix();
 }
 
 // this draws all of the stuff in the world

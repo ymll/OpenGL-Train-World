@@ -24,6 +24,7 @@ using std::vector;
 
 // make use of other data structures from this project
 #include "ControlPoint.H"
+#include "Utilities\3DUtils.h"
 
 class World {
 public:		// we don't make anything private - for no good reason
@@ -43,8 +44,8 @@ public:		// we don't make anything private - for no good reason
 	// it is in parameter space
 	// TODO: you might want to do this differently
 	float trainU;
-
 	float tension;
+	HMatrix train_matrix;
 
 	// read and write to files
 	void readPoints(const char* filename);
