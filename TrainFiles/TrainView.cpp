@@ -22,6 +22,7 @@
 #include "GL/gl.h"
 #include "GL/glu.h"
 
+GLUquadric *quadric;
 
 struct camera_info {
 	Pnt3f eye;
@@ -446,6 +447,48 @@ void TrainView::drawStuff(bool doingShadows)
 	if (!tw->trainCam->value())
 		drawTrain(doingShadows);
 
+	// draw the world
+	quadric = gluNewQuadric();
+	if (!doingShadows){
+		glColor3f( 1.9, 1.9, 1.9);
+	}
+	drawCube(-45,25,-45,50);
+	drawCube(-45,50,-45,30);
+	glPushMatrix();
+	glTranslated(-45,65,-45);
+	glRotated(-90,1,0,0);
+	glRotated(45,0,0,1);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.5, 0.5);
+	}
+	gluCylinder(quadric,20,0,40,4,20);
+	glPopMatrix();
+	glPushMatrix();
+	glTranslated(-10,0,-30);
+	glRotated(-90,1,0,0);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.8, 0.8);
+	}
+	gluCylinder(quadric,10,10,50,20,20);
+	glTranslated(0,0,50);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.5, 0.5);
+	}
+	gluCylinder(quadric, 10,0,15,20,20);
+	glPopMatrix();
+	glPushMatrix();
+	glTranslated(-80,0,-30);
+	glRotated(-90,1,0,0);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.8, 0.8);
+	}
+	gluCylinder(quadric,10,10,50,20,20);
+	glTranslated(0,0,50);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.5, 0.5);
+	}
+	gluCylinder(quadric, 10,0,15,20,20);
+	glPopMatrix();
 }
 
 // this tries to see which control point is under the mouse
