@@ -1,4 +1,4 @@
-//  Train Project
+﻿//  Train Project
 // TrainView class implementation
 // see the header for details
 // look for TODO: to see things you want to add/change
@@ -136,7 +136,6 @@ void TrainView::draw()
 
 	// Blayne prefers GL_DIFFUSE
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-
 	// prepare for projection
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -392,26 +391,33 @@ void TrainView::drawTrain(bool doingShadows)
 	Pnt3f train_loc = getLocationFromParameter(world, world->trainU, world->tension);
 
 	if (!doingShadows) {
-		glColor3f(0, 0, 1);
+		glColor3ub(240,240,30);
 	}
-	
+
 	getDirectionFromParameter(world, world->trainU, direction);
 	getOritentationFromParameter(world, world->trainU, oritentation);
 	getMatrix(world, train_loc, direction, oritentation, 0);
 
 	glPushMatrix();
 	glMultMatrixf((float*)world->train_matrix);
-	
+
 	glPushMatrix();
 	glTranslated(0.0f, 2.5f, 0.0f);
-	drawCube(3.0f, 5.0f, 15.0f);
+	drawCube(3.0f, 5.0f, 10.0f);
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslated(0.0f , 5.0f, -5.5f);
+	glTranslated(0.0f , 5.0f, 5.0f);
 	drawCube(5.0f, 5.0f, 5.0f);
 	glPopMatrix();
 
+	glPushMatrix();
+	if (!doingShadows) {
+		glColor3ub(255,130,71);
+	}
+	glTranslated(0.0f , 5.0f, 8.0f);
+	drawCube(3.0f, 2.0f, 2.0f);
+	glPopMatrix();
 	glPopMatrix();
 }
 
@@ -448,12 +454,15 @@ void TrainView::drawStuff(bool doingShadows)
 		drawTrain(doingShadows);
 
 	// draw the world
+
+	//castle
 	quadric = gluNewQuadric();
 	if (!doingShadows){
 		glColor3f( 1.9, 1.9, 1.9);
 	}
 	drawCube(-45,25,-45,50);
 	drawCube(-45,50,-45,30);
+
 	glPushMatrix();
 	glTranslated(-45,65,-45);
 	glRotated(-90,1,0,0);
@@ -463,8 +472,9 @@ void TrainView::drawStuff(bool doingShadows)
 	}
 	gluCylinder(quadric,20,0,40,4,20);
 	glPopMatrix();
+
 	glPushMatrix();
-	glTranslated(-10,0,-30);
+	glTranslated(-10,0,-25);
 	glRotated(-90,1,0,0);
 	if (!doingShadows){
 		glColor3f( 0.8, 0.8, 0.8);
@@ -476,8 +486,9 @@ void TrainView::drawStuff(bool doingShadows)
 	}
 	gluCylinder(quadric, 10,0,15,20,20);
 	glPopMatrix();
+
 	glPushMatrix();
-	glTranslated(-80,0,-30);
+	glTranslated(-10,0,-70);
 	glRotated(-90,1,0,0);
 	if (!doingShadows){
 		glColor3f( 0.8, 0.8, 0.8);
@@ -489,6 +500,35 @@ void TrainView::drawStuff(bool doingShadows)
 	}
 	gluCylinder(quadric, 10,0,15,20,20);
 	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(-80,0,-25);
+	glRotated(-90,1,0,0);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.8, 0.8);
+	}
+	gluCylinder(quadric,10,10,50,20,20);
+	glTranslated(0,0,50);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.5, 0.5);
+	}
+	gluCylinder(quadric, 10,0,15,20,20);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslated(-80,0,-70);
+	glRotated(-90,1,0,0);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.8, 0.8);
+	}
+	gluCylinder(quadric,10,10,50,20,20);
+	glTranslated(0,0,50);
+	if (!doingShadows){
+		glColor3f( 0.8, 0.5, 0.5);
+	}
+	gluCylinder(quadric, 10,0,15,20,20);
+	glPopMatrix();
+
 }
 
 // this tries to see which control point is under the mouse
