@@ -177,8 +177,6 @@ void TrainView::draw()
 	glLightfv(GL_LIGHT2, GL_POSITION, lightPosition3);
 	glLightfv(GL_LIGHT2, GL_DIFFUSE, blueLight);
 
-
-
 	// now draw the ground plane
 	setupFloor();
 	glDisable(GL_LIGHTING);
@@ -197,46 +195,6 @@ void TrainView::draw()
 		unsetupShadows();
 	}
 
-}
-
-// note: this sets up both the Projection and the ModelView matrices
-// HOWEVER: it doesn't clear the projection first (the caller handles
-// that) - its important for picking
-void TrainView::setProjection()
-{
-	// compute the aspect ratio (we'll need it)
-	float aspect = static_cast<float>(w()) / static_cast<float>(h());
-
-	if (tw->worldCam->value())
-		arcball.setProjection(false);
-	else if (tw->topCam->value()) {
-		float wi,he;
-		if (aspect >= 1) {
-			wi = 110;
-			he = wi/aspect;
-		} else {
-			he = 110;
-			wi = he*aspect;
-		}
-		glMatrixMode(GL_PROJECTION);
-		glOrtho(-wi,wi,-he,he,200,-200);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glRotatef(-90,1,0,0);
-	} else {
-		// TODO: put code for train view projection here!
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		gluPerspective(80.0, aspect, 1.0, 2000.0);
-
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-
-		gluLookAt(camera_setting.eye.x, camera_setting.eye.y, camera_setting.eye.z, 
-			camera_setting.center.x, camera_setting.center.y, camera_setting.center.z, 
-			camera_setting.up.x, camera_setting.up.y, camera_setting.up.z);
-	}
 }
 
 void getDirectionFromParameter(World *world, float para, Pnt3f &direction)
@@ -313,6 +271,55 @@ void getMatrix(World *world, Pnt3f position, Pnt3f direction, Pnt3f oritentation
 	world->train_matrix[3][1] = obj_position.y;
 	world->train_matrix[3][2] = obj_position.z;
 	world->train_matrix[3][3] = 1.0f;
+}
+
+// note: this sets up both the Projection and the ModelView matrices
+// HOWEVER: it doesn't clear the projection first (the caller handles
+// that) - its important for picking
+void TrainView::setProjection()
+{
+	// compute the aspect ratio (we'll need it)
+	float aspect = static_cast<float>(w()) / static_cast<float>(h());
+
+	if (tw->worldCam->value())
+		arcball.setProjection(false);
+	else if (tw->topCam->value()) {
+		float wi,he;
+		if (aspect >= 1) {
+			wi = 110;
+			he = wi/aspect;
+		} else {
+			he = 110;
+			wi = he*aspect;
+		}
+		glMatrixMode(GL_PROJECTION);
+		glOrtho(-wi,wi,-he,he,200,-200);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glRotatef(-90,1,0,0);
+	} else {
+		// TODO: put code for train view projection here!
+		Pnt3f pos_train = getLocationFromParameter(world, world->trainU, world->tension);
+		Pnt3f direction;
+		Pnt3f oritentation;
+		getDirectionFromParameter(world, world->trainU, direction);
+		getOritentationFromParameter(world, world->trainU, oritentation);
+		printf("%d %d %d \n",direction.x,direction.y,direction.z);
+		printf("%d %d %d \n",pos_train.x,pos_train.y,pos_train.z);
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluPerspective(80.0, aspect, 1.0, 10000.0);
+
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+//		glRotatef(-90,0,1,0);
+		gluLookAt(pos_train.x, pos_train.y, pos_train.z, 0, 0, 0, 0, 1, 0);
+		
+		//gluLookAt(camera_setting.eye.x, camera_setting.eye.y, camera_setting.eye.z, 
+		//	camera_setting.center.x, camera_setting.center.y, camera_setting.center.z, 
+		//	camera_setting.up.x, camera_setting.up.y, camera_setting.up.z);
+	}
 }
 
 void drawCube(float w, float h, float l){
