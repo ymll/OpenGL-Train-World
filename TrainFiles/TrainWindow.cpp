@@ -26,8 +26,6 @@
 // for using the real time clock
 #include <time.h>
 
-
-
 /////////////////////////////////////////////////////
 void tensionCallback(Fl_Widget*, TrainWindow* tw);
 

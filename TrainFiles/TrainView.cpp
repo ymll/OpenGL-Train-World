@@ -21,8 +21,49 @@
 #include <windows.h>
 #include "GL/gl.h"
 #include "GL/glu.h"
+#include "bitmap.h"
 
 GLUquadric *quadric;
+GLuint texture, texture2, texture3;
+int image_w,image_h;
+
+GLubyte* TextureLoadBitmap(char *filename, int *w, int *h)		/* I - Bitmap file to load */
+{
+	BITMAPINFO	*info;				/* Bitmap information */
+	void		*bits;				/* Bitmap pixel bits */
+	GLubyte	*rgb;				/* Bitmap RGB pixels */
+	GLubyte   err = '0';
+
+	/*
+	* Try loading the bitmap and converting it to RGB...
+	*/
+	
+	bits = LoadDIBitmap(filename, &info);
+	if (bits == NULL) {
+		printf("bitsNULL");
+		return(NULL);
+	}
+	rgb = ConvertRGB(info, bits);
+	if (rgb == NULL)
+	{
+		free(info);
+		free(bits);
+	};
+
+	printf("%s: %d %d\n", filename, info->bmiHeader.biWidth, info->bmiHeader.biHeight);
+	printf("read %s successfully\n", filename);
+	*w = info->bmiHeader.biWidth;
+	*h = info->bmiHeader.biHeight;
+
+	/*
+	* Free the bitmap and RGB images, then return 0 (no errors).
+	*/
+
+	free(info);
+	free(bits);
+	return (rgb);
+
+}
 
 struct camera_info {
 	Pnt3f eye;
@@ -124,6 +165,7 @@ int TrainView::handle(int event)
 // it puts a lot of the work into other routines to simplify things
 void TrainView::draw()
 {
+	GLubyte* image;
 	glViewport(0,0,w(),h());
 
 	// clear the window, be sure to clear the Z-Buffer too
@@ -176,6 +218,22 @@ void TrainView::draw()
 
 	glLightfv(GL_LIGHT2, GL_POSITION, lightPosition3);
 	glLightfv(GL_LIGHT2, GL_DIFFUSE, blueLight);
+
+	// setup for material
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+
+	image = TextureLoadBitmap("brick.bmp", &image_w, &image_h);
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_w, image_h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
 
 	// now draw the ground plane
 	setupFloor();
@@ -276,6 +334,8 @@ void getMatrix(World *world, Pnt3f position, Pnt3f direction, Pnt3f oritentation
 // note: this sets up both the Projection and the ModelView matrices
 // HOWEVER: it doesn't clear the projection first (the caller handles
 // that) - its important for picking
+
+Pnt3f past_pos_train;
 void TrainView::setProjection()
 {
 	// compute the aspect ratio (we'll need it)
@@ -304,8 +364,8 @@ void TrainView::setProjection()
 		Pnt3f oritentation;
 		getDirectionFromParameter(world, world->trainU, direction);
 		getOritentationFromParameter(world, world->trainU, oritentation);
-		printf("%d %d %d \n",direction.x,direction.y,direction.z);
-		printf("%d %d %d \n",pos_train.x,pos_train.y,pos_train.z);
+		printf("1 %d %d %d \n",direction.x,direction.y,direction.z);
+		printf("2 %d %d %d \n",pos_train.x,pos_train.y,pos_train.z);
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -316,6 +376,7 @@ void TrainView::setProjection()
 //		glRotatef(-90,0,1,0);
 		gluLookAt(pos_train.x, pos_train.y, pos_train.z, 0, 0, 0, 0, 1, 0);
 		
+		past_pos_train = getLocationFromParameter(world, world->trainU, world->tension);
 		//gluLookAt(camera_setting.eye.x, camera_setting.eye.y, camera_setting.eye.z, 
 		//	camera_setting.center.x, camera_setting.center.y, camera_setting.center.z, 
 		//	camera_setting.up.x, camera_setting.up.y, camera_setting.up.z);
@@ -481,12 +542,16 @@ void TrainView::drawStuff(bool doingShadows)
 	glPopMatrix();
 
 	glPushMatrix();
+	gluQuadricTexture(quadric, GL_TRUE);
 	glTranslated(-10,0,-25);
 	glRotated(-90,1,0,0);
 	if (!doingShadows){
 		glColor3f( 0.8, 0.8, 0.8);
 	}
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture);
 	gluCylinder(quadric,10,10,50,20,20);
+	glDisable(GL_TEXTURE_2D);
 	glTranslated(0,0,50);
 	if (!doingShadows){
 		glColor3f( 0.8, 0.5, 0.5);
@@ -500,7 +565,10 @@ void TrainView::drawStuff(bool doingShadows)
 	if (!doingShadows){
 		glColor3f( 0.8, 0.8, 0.8);
 	}
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture);
 	gluCylinder(quadric,10,10,50,20,20);
+	glDisable(GL_TEXTURE_2D);
 	glTranslated(0,0,50);
 	if (!doingShadows){
 		glColor3f( 0.8, 0.5, 0.5);
@@ -514,7 +582,10 @@ void TrainView::drawStuff(bool doingShadows)
 	if (!doingShadows){
 		glColor3f( 0.8, 0.8, 0.8);
 	}
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture);
 	gluCylinder(quadric,10,10,50,20,20);
+	glDisable(GL_TEXTURE_2D);
 	glTranslated(0,0,50);
 	if (!doingShadows){
 		glColor3f( 0.8, 0.5, 0.5);
@@ -528,7 +599,10 @@ void TrainView::drawStuff(bool doingShadows)
 	if (!doingShadows){
 		glColor3f( 0.8, 0.8, 0.8);
 	}
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture);
 	gluCylinder(quadric,10,10,50,20,20);
+	glDisable(GL_TEXTURE_2D);
 	glTranslated(0,0,50);
 	if (!doingShadows){
 		glColor3f( 0.8, 0.5, 0.5);
