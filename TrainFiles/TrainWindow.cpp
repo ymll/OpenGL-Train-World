@@ -227,11 +227,38 @@ void TrainWindow::advanceTrain(float dir)
 
 	// note - we give a little bit more example code here than normal,
 	// so you can see how this works
+	bool isUsePhysic = true;
+	const float gravity = 1.0f;
 
 	if (arcLength->value()) {
 		//considering the arc length requirement
+		float trainSpeed = 0.0f;
+
+		if (isUsePhysic) {
+			if (world.points.size() > 0) {
+				float lowestHeight = world.points[0].pos.y;
+				float highestHeight = world.points[0].pos.y;
+
+				for (int i = 1; i < world.points.size(); i++) {
+					if (world.points[i].pos.y < lowestHeight) {
+						lowestHeight = world.points[i].pos.y;
+					}
+
+					if (world.points[i].pos.y > highestHeight) {
+						highestHeight = world.points[i].pos.y;
+					}
+				}
+
+				const float totalEnergy = gravity * (highestHeight) + 0.2;
+				trainSpeed = sqrt(2*(totalEnergy - gravity * (world.train_height)));
+			}
+		} else {
+			trainSpeed = 10;
+		}
+
 		Pnt3f next_loc;
-		getNextPoint(&world, (float)speed->value() * dir * 10, world.tension, world.trainU, next_loc);
+		trainSpeed = trainSpeed * (float)speed->value() * dir;
+		getNextPoint(&world, trainSpeed, world.tension, world.trainU, next_loc);
 	} else {
 		//the basic functionality
 		world.trainU +=  dir * ((float)speed->value() * .1f);

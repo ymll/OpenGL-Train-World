@@ -457,6 +457,7 @@ void TrainView::drawTrain(bool doingShadows)
 	Pnt3f direction;
 	Pnt3f oritentation;
 	Pnt3f train_loc = getLocationFromParameter(world, world->trainU, world->tension);
+	world->train_height = train_loc.y;
 
 	if (!doingShadows) {
 		glColor3ub(240,240,30);

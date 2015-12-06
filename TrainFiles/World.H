@@ -46,6 +46,7 @@ public:		// we don't make anything private - for no good reason
 	float trainU;
 	float tension;
 	HMatrix train_matrix;
+	float train_height;
 
 	// read and write to files
 	void readPoints(const char* filename);
