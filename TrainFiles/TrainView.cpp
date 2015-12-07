@@ -19,9 +19,12 @@
 
 // we will need OpenGL, and OpenGL needs windows.h
 #include <windows.h>
+#include <math.h>
 #include "GL/gl.h"
 #include "GL/glu.h"
 #include "bitmap.h"
+
+#define PI 3.14159265
 
 GLUquadric *quadric;
 GLuint texture, texture2, texture3;
@@ -49,9 +52,6 @@ GLubyte* TextureLoadBitmap(char *filename, int *w, int *h)		/* I - Bitmap file t
 		free(info);
 		free(bits);
 	};
-
-	printf("%s: %d %d\n", filename, info->bmiHeader.biWidth, info->bmiHeader.biHeight);
-	printf("read %s successfully\n", filename);
 	*w = info->bmiHeader.biWidth;
 	*h = info->bmiHeader.biHeight;
 
@@ -364,8 +364,9 @@ void TrainView::setProjection()
 		Pnt3f oritentation;
 		getDirectionFromParameter(world, world->trainU, direction);
 		getOritentationFromParameter(world, world->trainU, oritentation);
+		getMatrix(world, pos_train, direction, oritentation, 0);
 		printf("1 %d %d %d \n",direction.x,direction.y,direction.z);
-		printf("2 %d %d %d \n",pos_train.x,pos_train.y,pos_train.z);
+		printf("2 %d %d %d \n",oritentation.x,oritentation.y,oritentation.z);
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -373,9 +374,10 @@ void TrainView::setProjection()
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
-//		glRotatef(-90,0,1,0);
-		gluLookAt(pos_train.x, pos_train.y, pos_train.z, 0, 0, 0, 0, 1, 0);
-		
+
+	//	glRotatef(-45,0,1,0);
+
+		gluLookAt(pos_train.x, pos_train.y, pos_train.z, pos_train.x + direction.x, pos_train.y + direction.y, pos_train.z + direction.z, 0, 1, 0);
 		past_pos_train = getLocationFromParameter(world, world->trainU, world->tension);
 		//gluLookAt(camera_setting.eye.x, camera_setting.eye.y, camera_setting.eye.z, 
 		//	camera_setting.center.x, camera_setting.center.y, camera_setting.center.z, 
