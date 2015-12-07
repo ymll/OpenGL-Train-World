@@ -20,6 +20,7 @@
 // we will need OpenGL, and OpenGL needs windows.h
 #include <windows.h>
 #include <math.h>
+#include <time.h>
 #include "GL/gl.h"
 #include "GL/glu.h"
 #include "bitmap.h"
@@ -335,7 +336,6 @@ void getMatrix(World *world, Pnt3f position, Pnt3f direction, Pnt3f oritentation
 // HOWEVER: it doesn't clear the projection first (the caller handles
 // that) - its important for picking
 
-Pnt3f past_pos_train;
 void TrainView::setProjection()
 {
 	// compute the aspect ratio (we'll need it)
@@ -365,8 +365,6 @@ void TrainView::setProjection()
 		getDirectionFromParameter(world, world->trainU, direction);
 		getOritentationFromParameter(world, world->trainU, oritentation);
 		getMatrix(world, pos_train, direction, oritentation, 0);
-		printf("1 %d %d %d \n",direction.x,direction.y,direction.z);
-		printf("2 %d %d %d \n",oritentation.x,oritentation.y,oritentation.z);
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -375,13 +373,7 @@ void TrainView::setProjection()
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 
-	//	glRotatef(-45,0,1,0);
-
 		gluLookAt(pos_train.x, pos_train.y, pos_train.z, pos_train.x + direction.x, pos_train.y + direction.y, pos_train.z + direction.z, 0, 1, 0);
-		past_pos_train = getLocationFromParameter(world, world->trainU, world->tension);
-		//gluLookAt(camera_setting.eye.x, camera_setting.eye.y, camera_setting.eye.z, 
-		//	camera_setting.center.x, camera_setting.center.y, camera_setting.center.z, 
-		//	camera_setting.up.x, camera_setting.up.y, camera_setting.up.z);
 	}
 }
 
@@ -497,6 +489,11 @@ void TrainView::drawTrain(bool doingShadows)
 // (otherwise, you get colored shadows)
 // this gets called twice per draw - once for the objects, once for the shadows
 // TODO: if you have other objects in the world, make sure to draw them
+short rain[30][3][10];
+int count = 0;
+int layer = 0;
+BOOL flag = true;
+
 void TrainView::drawStuff(bool doingShadows)
 {
 	// draw the control points
@@ -612,6 +609,37 @@ void TrainView::drawStuff(bool doingShadows)
 	}
 	gluCylinder(quadric, 10,0,15,20,20);
 	glPopMatrix();
+
+	//rain
+	count++;
+	if (count == 10){
+		count = 0;
+		layer++;
+		flag = true;
+		if (layer == 10){
+			layer = 0;
+		}
+	}
+
+	if (flag){
+				for (int i=0; i<30; i++){
+					rain[i][0][layer] = rand()%200 - 100;
+					rain[i][2][layer] = rand()%200 - 100;
+					rain[i][1][layer] = 100;
+			}
+	}
+
+	flag = false;
+	for (int i=0; i<30; i++){
+		for (int j = 0; j<10; j++){
+			rain[i][1][j]--;
+			glColor4f( 1, 1, 1, 0.5);
+			glBegin(GL_LINES);
+			glVertex3f(rain[i][0][j], rain[i][1][j], rain[i][2][j]);
+			glVertex3f(rain[i][0][j], rain[i][1][j]+5, rain[i][2][j]);
+			glEnd();
+		}
+	}
 
 }
 
