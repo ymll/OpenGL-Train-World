@@ -366,6 +366,7 @@ void TrainView::setProjection()
 		getOritentationFromParameter(world, world->trainU, oritentation);
 		getMatrix(world, pos_train, direction, oritentation, 0);
 
+		printf("%f %f %f\n",oritentation.x,oritentation.y,oritentation.z);
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		gluPerspective(80.0, aspect, 1.0, 10000.0);
@@ -373,7 +374,9 @@ void TrainView::setProjection()
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 
+		glRotatef((1 - oritentation.y) * 90,0,0,1);
 		gluLookAt(pos_train.x, pos_train.y, pos_train.z, pos_train.x + direction.x, pos_train.y + direction.y, pos_train.z + direction.z, 0, 1, 0);
+		
 	}
 }
 
