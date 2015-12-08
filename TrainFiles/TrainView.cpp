@@ -304,32 +304,32 @@ void getOritentationFromParameter(World *world, float para, Pnt3f &oritentation)
 	}
 }
 
-void getMatrix(World *world, Pnt3f position, Pnt3f direction, Pnt3f oritentation, float right)
+void getMatrix(World *world, Pnt3f position, Pnt3f direction, Pnt3f oritentation, float right, HMatrix &matrix)
 {
 	Pnt3f biNormal = direction * oritentation;
 	biNormal.normalize();
 	Pnt3f normal = biNormal * direction;
 	Pnt3f obj_position = position + biNormal * right;
 
-	world->train_matrix[0][0] = biNormal.x;
-	world->train_matrix[0][1] = biNormal.y;
-	world->train_matrix[0][2] = biNormal.z;
-	world->train_matrix[0][3] = 0.0f;
+	matrix[0][0] = biNormal.x;
+	matrix[0][1] = biNormal.y;
+	matrix[0][2] = biNormal.z;
+	matrix[0][3] = 0.0f;
 
-	world->train_matrix[1][0] = normal.x;
-	world->train_matrix[1][1] = normal.y;
-	world->train_matrix[1][2] = normal.z;
-	world->train_matrix[1][3] = 0.0f;
+	matrix[1][0] = normal.x;
+	matrix[1][1] = normal.y;
+	matrix[1][2] = normal.z;
+	matrix[1][3] = 0.0f;
 
-	world->train_matrix[2][0] = direction.x;
-	world->train_matrix[2][1] = direction.y;
-	world->train_matrix[2][2] = direction.z;
-	world->train_matrix[2][3] = 0.0f;
+	matrix[2][0] = direction.x;
+	matrix[2][1] = direction.y;
+	matrix[2][2] = direction.z;
+	matrix[2][3] = 0.0f;
 
-	world->train_matrix[3][0] = obj_position.x;
-	world->train_matrix[3][1] = obj_position.y;
-	world->train_matrix[3][2] = obj_position.z;
-	world->train_matrix[3][3] = 1.0f;
+	matrix[3][0] = obj_position.x;
+	matrix[3][1] = obj_position.y;
+	matrix[3][2] = obj_position.z;
+	matrix[3][3] = 1.0f;
 }
 
 // note: this sets up both the Projection and the ModelView matrices
@@ -364,7 +364,7 @@ void TrainView::setProjection()
 		Pnt3f oritentation;
 		getDirectionFromParameter(world, world->trainU, direction);
 		getOritentationFromParameter(world, world->trainU, oritentation);
-		getMatrix(world, pos_train, direction, oritentation, 0);
+		getMatrix(world, pos_train, direction, oritentation, 0, world->train_matrix);
 
 		printf("%f %f %f\n",oritentation.x,oritentation.y,oritentation.z);
 		glMatrixMode(GL_PROJECTION);
@@ -448,24 +448,25 @@ void TrainView::drawTrack(bool doingShadows)
 	drawCardinalSpline(world, world->tension);
 }
 
-//TODO: function that draw the train
-void TrainView::drawTrain(bool doingShadows)
+void processtrainMatrix(World *world, float trainU, float tension, Pnt3f &train_loc, HMatrix &matrix)
 {
 	Pnt3f direction;
 	Pnt3f oritentation;
-	Pnt3f train_loc = getLocationFromParameter(world, world->trainU, world->tension);
-	world->train_height = train_loc.y;
+	train_loc = getLocationFromParameter(world, trainU, tension);
 
+	getDirectionFromParameter(world, trainU, direction);
+	getOritentationFromParameter(world, trainU, oritentation);
+	getMatrix(world, train_loc, direction, oritentation, 0, matrix);
+}
+
+void drawFirstTrain(HMatrix &matrix, bool doingShadows)
+{
 	if (!doingShadows) {
 		glColor3ub(240,240,30);
 	}
 
-	getDirectionFromParameter(world, world->trainU, direction);
-	getOritentationFromParameter(world, world->trainU, oritentation);
-	getMatrix(world, train_loc, direction, oritentation, 0);
-
 	glPushMatrix();
-	glMultMatrixf((float*)world->train_matrix);
+	glMultMatrixf((float*)matrix);
 
 	glPushMatrix();
 	glTranslated(0.0f, 2.5f, 0.0f);
@@ -485,6 +486,41 @@ void TrainView::drawTrain(bool doingShadows)
 	drawCube(3.0f, 2.0f, 2.0f);
 	glPopMatrix();
 	glPopMatrix();
+}
+
+void drawOtherTrain(HMatrix &matrix, bool doingShadows)
+{
+	glPushMatrix();
+	glMultMatrixf((float*)matrix);
+
+	glPushMatrix();
+	glTranslated(0.0f, 2.5f, 0.0f);
+	drawCube(3.0f, 5.0f, 5.0f);
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+//TODO: function that draw the train
+void TrainView::drawTrain(bool doingShadows)
+{
+	unsigned no_of_cars = world->no_of_cars;
+	Pnt3f train_loc;
+	float firstCarBorder = 1.0f;
+	float carsBorder = 8.0f;
+	
+	processtrainMatrix(world, world->trainU, world->tension, train_loc, world->train_matrix);
+	world->train_height = train_loc.y;
+	drawFirstTrain(world->train_matrix, doingShadows);
+
+	for(int i = 1; i < no_of_cars; i++) {
+		float trainU = world->trainU;
+		HMatrix matrix;
+
+		getNextPoint(world, -carsBorder * i - firstCarBorder, world->tension, trainU, train_loc);
+		processtrainMatrix(world, trainU, world->tension, train_loc, matrix);
+		drawOtherTrain(matrix, doingShadows);
+	}
 }
 
 // this draws all of the stuff in the world

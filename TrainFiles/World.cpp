@@ -18,6 +18,8 @@ void World::resetPoints()
 
 	// we had better put the train back at the start of the track...
 	trainU = 0.0;
+	tension = 1.0;
+	no_of_cars = 3.0;
 }
 
 // handy utility to break a string into a list of words

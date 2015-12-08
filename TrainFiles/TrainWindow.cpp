@@ -25,9 +25,11 @@
 
 // for using the real time clock
 #include <time.h>
+#include <math.h>
 
 /////////////////////////////////////////////////////
 void tensionCallback(Fl_Widget*, TrainWindow* tw);
+void noOfCarsCallback(Fl_Widget*, TrainWindow* tw);
 
 TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,600,"Train and Roller Coaster")
 {
@@ -60,7 +62,7 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
 		speed = new Fl_Value_Slider(655,pty,140,20,"speed");
 		speed->range(0,2);
 		speed->step(0.01);
-		speed->value(0.1);
+		speed->value(0.5);
 		speed->align(FL_ALIGN_LEFT);
 		speed->type(FL_HORIZONTAL);
 
@@ -130,13 +132,21 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
 		// TODO: add widgets for all of your fancier features here
 		Fl_Value_Slider* tension = new Fl_Value_Slider(655,pty,140,20,"Tension");
 		tension->range(0, 1);
-		tension->value(0);
+		tension->value(1.0);
 		tension->step(0.05);
 		tension->align(FL_ALIGN_LEFT);
 		tension->type(FL_HORIZONTAL);
 		tension->callback((Fl_Callback*)tensionCallback,this);
 
 		pty+=20;
+
+		Fl_Value_Slider* noOfCars = new Fl_Value_Slider(655,pty,140,20,"Cars");
+		noOfCars->range(1, 10);
+		noOfCars->value(3);
+		noOfCars->step(1);
+		noOfCars->align(FL_ALIGN_LEFT);
+		noOfCars->type(FL_HORIZONTAL);
+		noOfCars->callback((Fl_Callback*)noOfCarsCallback,this);
 
 		// we need to make a little phantom widget to have things resize correctly
 		Fl_Box* resizebox = new Fl_Box(600,595,200,5);
@@ -148,8 +158,6 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
 
 	// set up callback on idle
 	Fl::add_idle((void (*)(void*))runButtonCB,this);
-
-	world.tension = 0.0f;
 }
 
 // handy utility to make a button into a toggle
@@ -171,6 +179,12 @@ void TrainWindow::damageMe()
 void tensionCallback(Fl_Widget* tension_widget, TrainWindow* tw)
 {
 	tw->world.tension = (float)((Fl_Value_Slider*)tension_widget)->value();
+	tw->damageMe();
+}
+
+void noOfCarsCallback(Fl_Widget* noOfCars_widget, TrainWindow* tw)
+{
+	tw->world.no_of_cars = (float)((Fl_Value_Slider*)noOfCars_widget)->value();
 	tw->damageMe();
 }
 
@@ -210,10 +224,24 @@ void getNextPoint(World *world, float displacement, float tension, float &para, 
 	float current_displacement = 0.0f;
 	Pnt3f current_loc = getLocationFromParameter(world, para, tension);
 	
-	while (current_displacement < displacement) {
-		para += du;
+	while (abs(current_displacement) < abs(displacement)) {
+		if (displacement > 0) {
+			para += du;
+		} else {
+			para -= du;
+			if (para < 0.0001) {
+				para += (float)world->points.size();
+			}
+		}
+
 		next_loc = getLocationFromParameter(world, para, tension);
-		current_displacement += distance(current_loc, next_loc);
+
+		if (displacement > 0) {
+			current_displacement += distance(current_loc, next_loc);
+		} else {
+			current_displacement -= distance(current_loc, next_loc);
+		}
+		
 		current_loc = next_loc;
 	}
 }
@@ -233,6 +261,7 @@ void TrainWindow::advanceTrain(float dir)
 	if (arcLength->value()) {
 		//considering the arc length requirement
 		float trainSpeed = 0.0f;
+		float minSpeed = 0.001f;
 
 		if (isUsePhysic) {
 			if (world.points.size() > 0) {
@@ -250,7 +279,7 @@ void TrainWindow::advanceTrain(float dir)
 				}
 
 				const float totalEnergy = gravity * (highestHeight) + 0.2;
-				trainSpeed = sqrt(2*(totalEnergy - gravity * (world.train_height)));
+				trainSpeed = std::max(minSpeed, sqrt(2*(totalEnergy - gravity * (world.train_height))));
 			}
 		} else {
 			trainSpeed = 10;
