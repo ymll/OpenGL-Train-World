@@ -236,6 +236,16 @@ void TrainView::draw()
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_w, image_h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
 
+	image = TextureLoadBitmap("wood.bmp", &image_w, &image_h);
+	glGenTextures(1, &texture2);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_w, image_h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+
 	// now draw the ground plane
 	setupFloor();
 	glDisable(GL_LIGHTING);
@@ -490,14 +500,40 @@ void drawFirstTrain(HMatrix &matrix, bool doingShadows)
 
 void drawOtherTrain(HMatrix &matrix, bool doingShadows)
 {
+	//glPushMatrix();
+	//glMultMatrixf((float*)matrix);
+
+	//glPushMatrix();
+	//glTranslated(0.0f, 2.5f, 0.0f);
+	//drawCube(3.0f, 5.0f, 5.0f);
+	//glPopMatrix();
+
+	//glPopMatrix();
+
+	if (!doingShadows) {
+		glColor3ub(240,240,30);
+	}
+
 	glPushMatrix();
 	glMultMatrixf((float*)matrix);
 
 	glPushMatrix();
 	glTranslated(0.0f, 2.5f, 0.0f);
-	drawCube(3.0f, 5.0f, 5.0f);
+	drawCube(3.0f, 5.0f, 10.0f);
 	glPopMatrix();
 
+	glPushMatrix();
+	glTranslated(0.0f , 5.0f, 5.0f);
+	drawCube(5.0f, 5.0f, 5.0f);
+	glPopMatrix();
+
+	glPushMatrix();
+	if (!doingShadows) {
+		glColor3ub(255,130,71);
+	}
+	glTranslated(0.0f , 5.0f, 8.0f);
+	drawCube(3.0f, 2.0f, 2.0f);
+	glPopMatrix();
 	glPopMatrix();
 }
 
@@ -507,7 +543,7 @@ void TrainView::drawTrain(bool doingShadows)
 	unsigned no_of_cars = world->no_of_cars;
 	Pnt3f train_loc;
 	float firstCarBorder = 1.0f;
-	float carsBorder = 8.0f;
+	float carsBorder = 15.0f;
 	
 	processtrainMatrix(world, world->trainU, world->tension, train_loc, world->train_matrix);
 	world->train_height = train_loc.y;
@@ -523,14 +559,32 @@ void TrainView::drawTrain(bool doingShadows)
 	}
 }
 
+void drawTree(int x, int y,BOOL shadow){
+	glPushMatrix();
+	glTranslated(x,0,y);
+	glRotated(-90,1,0,0);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture2);
+	gluCylinder(quadric,8,8,20,20,20);
+	glDisable(GL_TEXTURE_2D);
+	if (!shadow){
+		glColor3f( 0.5, 0.9, 0.5);
+	}
+	glTranslated(0,0,20);
+	gluCylinder(quadric,20,10,20,20,20);
+	glTranslated(0,0,20);
+	gluCylinder(quadric,15,0,20,20,20);
+	glPopMatrix();
+}
+
 // this draws all of the stuff in the world
 // NOTE: if you're drawing shadows, DO NOT set colors 
 // (otherwise, you get colored shadows)
 // this gets called twice per draw - once for the objects, once for the shadows
 // TODO: if you have other objects in the world, make sure to draw them
 short rain[30][3][10];
-int count = 0;
-int layer = 0;
+short count = 0;
+short layer = 0;
 BOOL flag = true;
 
 void TrainView::drawStuff(bool doingShadows)
@@ -672,13 +726,41 @@ void TrainView::drawStuff(bool doingShadows)
 	for (int i=0; i<30; i++){
 		for (int j = 0; j<10; j++){
 			rain[i][1][j]--;
-			glColor4f( 1, 1, 1, 0.5);
+			glPushMatrix();
+			if (!doingShadows){
+				glColor4f( 0.4, 0.4, 0.8, 0.5);
+			}
 			glBegin(GL_LINES);
 			glVertex3f(rain[i][0][j], rain[i][1][j], rain[i][2][j]);
 			glVertex3f(rain[i][0][j], rain[i][1][j]+5, rain[i][2][j]);
 			glEnd();
+			glPopMatrix();
 		}
 	}
+
+
+	glPushMatrix();
+	glRotated(90, 1, 0, 0);
+	glTranslated(-30,50,0);
+	if (!doingShadows){
+		glColor3f( 0.4, 0.4, 0.9);
+	}
+	gluDisk(quadric,0,layer+10,50,50);
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotated(90, 1, 0, 0);
+	glTranslated(-70,60,0);
+	if (!doingShadows){
+		glColor3f( 0.4, 0.4, 0.9);
+	}
+	gluDisk(quadric,0,layer+5,50,50);
+	glPopMatrix();
+
+	//tree
+	drawTree(80,60,doingShadows);
+	drawTree(50,50,doingShadows);
+	drawTree(60,20,doingShadows);
 
 }
 
