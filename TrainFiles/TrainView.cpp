@@ -161,7 +161,7 @@ int TrainView::handle(int event)
 
 	return Fl_Gl_Window::handle(event);
 }
-
+BOOL first = true;
 // this is the code that actually draws the window
 // it puts a lot of the work into other routines to simplify things
 void TrainView::draw()
@@ -226,6 +226,7 @@ void TrainView::draw()
 	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
 	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 
+	if (first){
 	image = TextureLoadBitmap("brick.bmp", &image_w, &image_h);
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -245,6 +246,8 @@ void TrainView::draw()
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_w, image_h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	first = false;
+	}
 
 	// now draw the ground plane
 	setupFloor();
