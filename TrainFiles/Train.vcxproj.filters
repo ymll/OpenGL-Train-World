@@ -48,6 +48,9 @@
     <ClCompile Include="..\Utilities\Pnt3f.cpp">
       <Filter>Source Files\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="bitmap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CallBacks.H">
@@ -77,5 +80,16 @@
     <ClInclude Include="..\Utilities\Pnt3f.h">
       <Filter>Header Files\Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="bitmap.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="brick.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="wood.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

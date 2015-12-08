@@ -94,6 +94,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bitmap.c" />
     <ClCompile Include="CallBacks.cpp" />
     <ClCompile Include="ControlPoint.cpp" />
     <ClCompile Include="Train.cpp" />
@@ -105,6 +106,7 @@
     <ClCompile Include="..\Utilities\Pnt3f.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bitmap.h" />
     <ClInclude Include="CallBacks.H" />
     <ClInclude Include="ControlPoint.H" />
     <ClInclude Include="Object.H" />
@@ -114,6 +116,10 @@
     <ClInclude Include="..\Utilities\3DUtils.h" />
     <ClInclude Include="..\Utilities\ArcBallCam.H" />
     <ClInclude Include="..\Utilities\Pnt3f.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="brick.bmp" />
+    <Image Include="wood.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -25,10 +25,12 @@
 
 // for using the real time clock
 #include <time.h>
-
-
+#include <math.h>
 
 /////////////////////////////////////////////////////
+void tensionCallback(Fl_Widget*, TrainWindow* tw);
+void noOfCarsCallback(Fl_Widget*, TrainWindow* tw);
+
 TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,600,"Train and Roller Coaster")
 {
 	// make all of the widgets
@@ -46,7 +48,7 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
 		widgets->begin();
 
 		runButton = new Fl_Button(605,pty,60,20,"Run");
-		togglify(runButton);
+		togglify(runButton, 1);
 
 		Fl_Button* fb = new Fl_Button(700,pty,25,20,"@>>");
 		fb->callback((Fl_Callback*)forwCB,this);
@@ -58,8 +60,9 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
   
 		pty+=25;
 		speed = new Fl_Value_Slider(655,pty,140,20,"speed");
-		speed->range(0,10);
-		speed->value(2);
+		speed->range(0,2);
+		speed->step(0.01);
+		speed->value(0.5);
 		speed->align(FL_ALIGN_LEFT);
 		speed->type(FL_HORIZONTAL);
 
@@ -127,7 +130,23 @@ TrainWindow::TrainWindow(const int x, const int y) : Fl_Double_Window(x,y,800,60
 		pty+=30;
 
 		// TODO: add widgets for all of your fancier features here
+		Fl_Value_Slider* tension = new Fl_Value_Slider(655,pty,140,20,"Tension");
+		tension->range(0, 1);
+		tension->value(1.0);
+		tension->step(0.05);
+		tension->align(FL_ALIGN_LEFT);
+		tension->type(FL_HORIZONTAL);
+		tension->callback((Fl_Callback*)tensionCallback,this);
 
+		pty+=20;
+
+		Fl_Value_Slider* noOfCars = new Fl_Value_Slider(655,pty,140,20,"Cars");
+		noOfCars->range(1, 10);
+		noOfCars->value(3);
+		noOfCars->step(1);
+		noOfCars->align(FL_ALIGN_LEFT);
+		noOfCars->type(FL_HORIZONTAL);
+		noOfCars->callback((Fl_Callback*)noOfCarsCallback,this);
 
 		// we need to make a little phantom widget to have things resize correctly
 		Fl_Box* resizebox = new Fl_Box(600,595,200,5);
@@ -157,6 +176,76 @@ void TrainWindow::damageMe()
 	trainView->damage(1);
 }
 
+void tensionCallback(Fl_Widget* tension_widget, TrainWindow* tw)
+{
+	tw->world.tension = (float)((Fl_Value_Slider*)tension_widget)->value();
+	tw->damageMe();
+}
+
+void noOfCarsCallback(Fl_Widget* noOfCars_widget, TrainWindow* tw)
+{
+	tw->world.no_of_cars = (float)((Fl_Value_Slider*)noOfCars_widget)->value();
+	tw->damageMe();
+}
+
+Pnt3f getLocationFromParameter(World *world, float para, float tension)
+{
+	int start_point_index = (int)para + world->points.size();
+	float t = para - (int)para;
+	Pnt3f location;
+	Pnt3f control_points[4];
+
+	location.x = 0.0f;
+	location.y = 0.0f;
+	location.z = 0.0f;
+	control_points[0] = world->points[(start_point_index - 1) % world->points.size()].pos;
+	control_points[1] = world->points[(start_point_index + 0) % world->points.size()].pos;
+	control_points[2] = world->points[(start_point_index + 1) % world->points.size()].pos;
+	control_points[3] = world->points[(start_point_index + 2) % world->points.size()].pos;
+
+	const float t2 = t*t;
+	const float t3 = t*t*t;
+	location = location + tension * (-t3 + 2*t2 - t) * control_points[0];
+	location = location + ((2*t3 - 3*t2 + 1) + tension * (t2 - t3)) * control_points[1];
+	location = location + ((-2*t3 + 3*t2) + tension * (t3 - 2*t2 + t)) * control_points[2];
+	location = location + tension * (t3 - t2) * control_points[3];
+
+	return location;
+}
+
+float distance(Pnt3f a, Pnt3f b)
+{
+	return sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y) + (a.z-b.z)*(a.z-b.z));
+}
+
+void getNextPoint(World *world, float displacement, float tension, float &para, Pnt3f &next_loc)
+{
+	const float du = 0.01f;
+	float current_displacement = 0.0f;
+	Pnt3f current_loc = getLocationFromParameter(world, para, tension);
+	
+	while (abs(current_displacement) < abs(displacement)) {
+		if (displacement > 0) {
+			para += du;
+		} else {
+			para -= du;
+			if (para < 0.0001) {
+				para += (float)world->points.size();
+			}
+		}
+
+		next_loc = getLocationFromParameter(world, para, tension);
+
+		if (displacement > 0) {
+			current_displacement += distance(current_loc, next_loc);
+		} else {
+			current_displacement -= distance(current_loc, next_loc);
+		}
+		
+		current_loc = next_loc;
+	}
+}
+
 /////////////////////////////////////////////////////
 // this will get called (approximately) 30 times per second
 // if the run button is pressed
@@ -166,9 +255,39 @@ void TrainWindow::advanceTrain(float dir)
 
 	// note - we give a little bit more example code here than normal,
 	// so you can see how this works
+	bool isUsePhysic = true;
+	const float gravity = 1.0f;
 
 	if (arcLength->value()) {
 		//considering the arc length requirement
+		float trainSpeed = 0.0f;
+		float minSpeed = 0.001f;
+
+		if (isUsePhysic) {
+			if (world.points.size() > 0) {
+				float lowestHeight = world.points[0].pos.y;
+				float highestHeight = world.points[0].pos.y;
+
+				for (int i = 1; i < world.points.size(); i++) {
+					if (world.points[i].pos.y < lowestHeight) {
+						lowestHeight = world.points[i].pos.y;
+					}
+
+					if (world.points[i].pos.y > highestHeight) {
+						highestHeight = world.points[i].pos.y;
+					}
+				}
+
+				const float totalEnergy = gravity * (highestHeight) + 0.2;
+				trainSpeed = std::max(minSpeed, sqrt(2*(totalEnergy - gravity * (world.train_height))));
+			}
+		} else {
+			trainSpeed = 10;
+		}
+
+		Pnt3f next_loc;
+		trainSpeed = trainSpeed * (float)speed->value() * dir;
+		getNextPoint(&world, trainSpeed, world.tension, world.trainU, next_loc);
 	} else {
 		//the basic functionality
 		world.trainU +=  dir * ((float)speed->value() * .1f);
